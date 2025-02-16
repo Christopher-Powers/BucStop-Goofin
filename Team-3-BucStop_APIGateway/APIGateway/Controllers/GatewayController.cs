@@ -4,118 +4,77 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
-using System.Text;
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+using Gateway;
 
-namespace Gateway
+namespace APIGateway
 {
-    /// <summary>
-    /// Controller responsible for handling requests and responses at the gateway.
-    /// </summary>
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/games")]
     public class GatewayController : ControllerBase
     {
-        private readonly HttpClient _httpClient; // Making readonly ensures thread safety 
-        private readonly ILogger<GatewayController> _logger; // Making readonly ensures thread safety 
-        private readonly List<GameInfo> TheInfo;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<GatewayController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public GatewayController(HttpClient httpClient, ILogger<GatewayController> logger)
+        public GatewayController(IHttpClientFactory httpClientFactory, ILogger<GatewayController> logger, IConfiguration configuration)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _logger = logger;
-            TheInfo = new List<GameInfo>();
+            _configuration = configuration;
         }
 
-        /// <summary>
-        /// Handles GET requests to retrieve game information from microservices.
-        /// </summary>
-        /// <returns>A collection of GameInfo objects.</returns>
         [HttpGet]
-        public async Task<IEnumerable<GameInfo>> Get()
+        public async Task<IActionResult> GetAllGameInfo()
         {
-            try
+            var gameInfoList = new List<GameInfo>();
+
+            var services = new Dictionary<string, string>
             {
-                var SnakeTask = AddGameInfo("https://localhost:1948", "/Snake" ); //Snake 
-                var Tetristask = AddGameInfo("https://localhost:2626", "/Tetris"); //Tetris
-                var PongTask = AddGameInfo("https://localhost:1941", "Pong"); //Pong
-                await Task.WhenAll(SnakeTask, Tetristask, PongTask);
-                return TheInfo;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An error occurred while fetching data from microservice: {ex.Message}");
-                // Return a placeholder list of GameInfo objects indicating failure
-                return GenerateFailureResponse();
-            }
-        }
-
-         /// <summary>
-         /// Attempts to retrieve gameinfo object from a microservice that holds a game info object (snake, tetris, pong)
-         /// and adds the game info into a list of game info objects
-         /// </summary>
-         /// <param name="gameinfolist"></param>
-         /// <param name="baseUrl"></param>
-         /// <param name="endpoint"></param>
-         /// <returns></returns>
-         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task AddGameInfo(string baseUrl, string endpoint)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                //Set the base address of the microservice 
-                client.BaseAddress = new Uri(baseUrl);
-
-                //Read the data from the endpoint 
-                HttpResponseMessage response = await client.GetAsync(endpoint);
-
-                // Check if the request was successful
-                if (response.IsSuccessStatusCode)
-                {
-                    // Deserialize the response content to a GameInfo object
-                    var gameinfo = await response.Content.ReadAsAsync<List<GameInfo>>();
-                    //Add object to list
-                    lock (TheInfo)
-                    {
-                        TheInfo.AddRange(gameinfo);
-                    }
-                }
-                else
-                {
-                    _logger.LogError($"Failed to retrieve data from microservice at endpoint {endpoint}. Status code: {response.StatusCode}");
-                }
-
-            }
-            catch (Exception ex) //Log error and return false if any exception occurs
-            { 
-                _logger.LogError(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Generates a placeholder list of GameInfo objects indicating failure to retrieve data.
-        /// Written with ChatGPT
-        /// </summary>
-        /// <returns>A collection of GameInfo objects indicating failure.</returns>
-        private IEnumerable<GameInfo> GenerateFailureResponse()
-        {
-            // Using IEnumerable allows flexibility in returning a placeholder response.
-            // It allows the method to return different types of collections (e.g., List, Array) if needed in the future.
-            // In this case, IEnumerable provides a simple way to return a list of failed responses.
-
-            // Generate a placeholder list of GameInfo objects indicating failure to retrieve data
-            return new List<GameInfo>
-            {
-                new GameInfo
-                {
-                    Title = "Failed to retrieve from Microservice",
-                    Author = "Failed to retrieve from Microservice",
-                    Description = "Failed to retrieve from Microservice",
-                    HowTo = "Failed to retrieve from Microservice",
-                    LeaderBoardStack = new Stack<KeyValuePair<string, int>>() // Initializing an empty stack
-                }
+                { "SnakeService", _configuration["ApiRoutes:SnakeService"] },
+                { "TetrisService", _configuration["ApiRoutes:TetrisService"] },
+                { "PongService", _configuration["ApiRoutes:PongService"] }
             };
+
+            var tasks = new List<Task>();
+
+            foreach (var service in services)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        var client = _httpClientFactory.CreateClient();
+                        var response = await client.GetAsync(service.Value);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var content = await response.Content.ReadAsStringAsync();
+                            var gameInfo = JsonSerializer.Deserialize<List<GameInfo>>(content);
+                            if (gameInfo != null)
+                            {
+                                lock (gameInfoList) // Ensure thread safety
+                                {
+                                    gameInfoList.AddRange(gameInfo);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogError($"Failed to retrieve data from {service.Key} - Status Code: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error fetching from {service.Key}: {ex.Message}");
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+
+            return gameInfoList.Count > 0 ? Ok(gameInfoList) : NotFound("No game data available.");
         }
     }
 }

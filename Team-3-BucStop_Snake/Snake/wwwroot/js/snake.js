@@ -13,6 +13,27 @@
 var canvas = document.getElementById('game');
 var context = canvas.getContext('2d');
 
+// Dynamicaly load game details from Snake microservice
+async function loadGameInfo() {
+    try {
+        let response = await fetch('/api/games');
+        if (!response.ok) throw new Error('Network response was not ok');  // I'm also not ok
+        let gameData = await response.json();
+
+        console.log("Game Data Loaded:", gameData);
+
+        document.getElementById('game-title').innerText = gameData[0].Title;
+        document.getElementById('game-description').innerText = gameData[0].Description;
+    } catch (error) {
+        console.error("Error loading game info:", error);
+    }
+}
+
+// Call API on page load
+window.onload = () => {
+    loadGameInfo();
+};
+
 // the canvas width & height, snake x & y, and the apple x & y, all need to be a multiples of the grid size in order for collision detection to work
 // (e.g. 16 * 25 = 400)
 var grid = 16;

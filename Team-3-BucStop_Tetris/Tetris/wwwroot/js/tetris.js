@@ -16,6 +16,28 @@
 // see https://stackoverflow.com/a/1527820/2124254
 
 let score = 0; //Overall score variable
+
+// Fetch game details
+async function loadGameInfo() {
+    try {
+        let response = await fetch('/Tetris');
+        if (!response.ok) throw new Error('Network response was not ok');
+        let gameData = await response.json();
+
+        console.log("Game Data Loaded:", gameData);
+
+        document.getElementById('game-title').innerText = gameData[0].Title;
+        document.getElementById('game-description').innerText = gameData[0].Description;
+    } catch (error) {
+        console.error("Error loading game info:", error);
+    }
+}
+
+// Call API on page load
+window.onload = () => {
+    loadGameInfo();
+};
+
 function getRandomInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);

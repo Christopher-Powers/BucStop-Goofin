@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-
-using Microsoft.Extensions.Caching.Distributed;
-using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace Snake
 {
@@ -14,32 +10,30 @@ namespace Snake
     [Route("[controller]")]
     public class SnakeController : ControllerBase
     {
-        private static readonly List<GameInfo> TheInfo = new List<GameInfo>
-        {
-            new GameInfo { 
-                Id = 1,
-                Title = "Snake",
-                Content = "~/js/snake.js",
-                Author = "Fall 2023 Semester",
-                DateAdded = "",
-                Description = "Snake is a classic arcade game that challenges the player to control a snake-like creature that grows longer as it eats apples. The player must avoid hitting the walls or the snake's own body, which can end the game.\r\n",
-                HowTo = "Control with arrow keys.",
-                Thumbnail = "/images/snake.jpg" //640x360 resolution
-            }
-
-        };
-
+        private readonly GameDbContext _context;
         private readonly ILogger<SnakeController> _logger;
 
-        public SnakeController(ILogger<SnakeController> logger)
+        public SnakeController(GameDbContext context, ILogger<SnakeController> logger)
         {
+            _context = context;
             _logger = logger;
         }
 
         [HttpGet]
-        public IEnumerable<GameInfo> Get()
+        public ActionResult<IEnumerable<GameInfo>> Get()
         {
-            return TheInfo;
+            try
+            {
+                var games = _context.Games.Where(g => g.Title == "Snake").ToList();
+                if (!games.Any()) return NotFound("No Snake game data found.");
+
+                return Ok(games);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error retrieving Snake game data: {0}", ex.Message);
+                return StatusCode(500, "Internal server error while retrieving game data.");
+            }
         }
     }
 }
