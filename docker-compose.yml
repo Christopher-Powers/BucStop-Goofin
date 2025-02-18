@@ -1,10 +1,10 @@
-
 services:
   bucstop:
     build:
       context: ./Bucstop WebApp/BucStop
       dockerfile: Dockerfile
     container_name: bucstop
+    image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/webapp:latest
     ports:
       - "8080:80"
     networks:
@@ -21,6 +21,7 @@ services:
       context: ./Team-3-BucStop_APIGateway/APIGateway
       dockerfile: Dockerfile
     container_name: api-gateway
+    image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/apigateway:latest
     ports:
       - "8081:80" # Expose API Gateway on localhost:8081
     networks:
@@ -35,6 +36,7 @@ services:
       context: ./Team-3-BucStop_Snake/Snake
       dockerfile: Dockerfile
     container_name: game-snake
+    image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/snake:latest
     ports:
       - "8082:80" # Expose Snake microservice on localhost:8082
     networks:
@@ -45,6 +47,7 @@ services:
       context: ./Team-3-BucStop_Pong/Pong
       dockerfile: Dockerfile
     container_name: game-pong
+    image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/pong:latest
     ports:
       - "8083:80" # Expose Pong microservice on localhost:8083
     networks:
@@ -55,6 +58,7 @@ services:
       context: ./Team-3-BucStop_Tetris/Tetris
       dockerfile: Dockerfile
     container_name: game-tetris
+    image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/tetris:latest
     ports:
       - "8084:80" # Expose Tetris microservice on localhost:8084
     networks:
