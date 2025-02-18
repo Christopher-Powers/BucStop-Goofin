@@ -1,0 +1,357 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: BucStopVPC
+
+  # Public Subnet 1
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: BucStop-Public-Subnet-1
+
+  # Public Subnet 2
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: BucStop-Public-Subnet-2
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  # Attach Internet Gateway to VPC
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Route Table for Public Access
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: BucStop-Public-RouteTable
+
+  # Route to Internet Gateway
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachInternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # Associate Public Subnets with Route Table
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Group for ECS Services
+  ECSServiceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound HTTP traffic
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  # ECS Cluster (Fixed to Ensure VPC Integration)
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: BucStopCluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  # IAM Role for ECS Execution (Now Includes Networking & Service Permissions)
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ECSExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+        - PolicyName: AmazonECSServiceRolePolicy  # ✅ Added this
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:CreateCluster
+                  - ecs:DeregisterContainerInstance
+                  - ecs:DiscoverPollEndpoint
+                  - ecs:Poll
+                  - ecs:RegisterContainerInstance
+                  - ecs:StartTelemetrySession
+                  - ecs:Submit*
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:Describe*
+                  - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+                  - elasticloadbalancing:DeregisterTargets
+                  - elasticloadbalancing:Describe*
+                  - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+                  - elasticloadbalancing:RegisterTargets
+                Resource: "*"
+
+  # ECS Task Definition - BucStop WebApp
+  BucStopTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: BucStopTask
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: bucstop
+          Image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/webapp:latest
+          PortMappings:
+            - ContainerPort: 80
+          Essential: true
+
+  # ECS Task Definition - API Gateway
+  ApiGatewayTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: ApiGatewayTask
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: api-gateway
+          Image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/apigateway:latest
+          PortMappings:
+            - ContainerPort: 80
+          Essential: true
+
+  # ECS Task Definition - Snake Game
+  SnakeTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: SnakeTask
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: game-snake
+          Image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/snake:latest
+          PortMappings:
+            - ContainerPort: 80
+          Essential: true
+
+  # ECS Task Definition - Pong Game
+  PongTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: PongTask
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: game-pong
+          Image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/pong:latest
+          PortMappings:
+            - ContainerPort: 80
+          Essential: true
+
+  # ECS Task Definition - Tetris Game
+  TetrisTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: TetrisTask
+      Cpu: '256'
+      Memory: '512'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: game-tetris
+          Image: 557690606455.dkr.ecr.us-east-1.amazonaws.com/bucstop/tetris:latest
+          PortMappings:
+            - ContainerPort: 80
+          Essential: true
+
+  # ECS Service - BucStop WebApp
+  BucStopService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      ServiceName: BucStopService
+      TaskDefinition: !Ref BucStopTask
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !Ref ECSServiceSecurityGroup
+          AssignPublicIp: ENABLED
+
+  # ECS Service - API Gateway
+  ApiGatewayService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      ServiceName: ApiGatewayService
+      TaskDefinition: !Ref ApiGatewayTask
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !Ref ECSServiceSecurityGroup
+          AssignPublicIp: ENABLED
+
+  # ECS Service - Snake Game
+  SnakeService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      ServiceName: SnakeService
+      TaskDefinition: !Ref SnakeTask
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !Ref ECSServiceSecurityGroup
+          AssignPublicIp: ENABLED
+
+  # ECS Service - Pong Game
+  PongService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      ServiceName: PongService
+      TaskDefinition: !Ref PongTask
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !Ref ECSServiceSecurityGroup
+          AssignPublicIp: ENABLED
+
+  # ECS Service - Tetris Game
+  TetrisService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      ServiceName: TetrisService
+      TaskDefinition: !Ref TetrisTask
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !Ref ECSServiceSecurityGroup
+          AssignPublicIp: ENABLED
+
+Outputs:
+
+  VPCId:
+    Description: "VPC ID"
+    Value: !Ref VPC
+
+  PublicSubnet1Id:
+    Description: "Public Subnet 1 ID"
+    Value: !Ref PublicSubnet1
+
+  PublicSubnet2Id:
+    Description: "Public Subnet 2 ID"
+    Value: !Ref PublicSubnet2
+
+  ECSClusterName:
+    Description: "ECS Cluster Name"
+    Value: !Ref ECSCluster
+
+  ECSServiceName:
+    Description: "ECS Service Name"
+    Value: !Ref BucStopService
+
+  BucStopWebAppURL:
+    Description: "Public IP to access BucStop WebApp"
+    Value: !Sub "http://${BucStopService}.us-east-1.compute.amazonaws.com"
