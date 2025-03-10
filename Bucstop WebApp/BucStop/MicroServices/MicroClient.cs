@@ -43,7 +43,7 @@ namespace BucStop
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError("{Category}: API request failed: {ErrorMessage}", "APIRequests", ex.Message);
             }
             return new GameInfo[] { };
         }

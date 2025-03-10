@@ -10,6 +10,12 @@ namespace BucStop.Controllers
     {
         public string email { get; set; } = string.Empty;
 
+        private readonly ILogger<AccountController> _logger;
+
+        public AccountController(ILogger<AccountController> logger)
+        {
+            _logger = logger;
+        }
         [AllowAnonymous]
         public IActionResult Login()
         {
@@ -40,6 +46,7 @@ namespace BucStop.Controllers
             else
             {
                 // Authentication failed, return to the login page with an error message
+                _logger.LogWarning("{Category}: Invalid login attempt for {Email}", "InvalidLogin", email);
                 ModelState.AddModelError(string.Empty, "Only ETSU students can play, sorry :(");
                 return View();
             }
@@ -47,6 +54,7 @@ namespace BucStop.Controllers
 
         public async Task<IActionResult> Logout()
         {
+            _logger.LogInformation("User logged out.");
             await HttpContext.SignOutAsync("CustomAuthenticationScheme");
             return RedirectToAction("Login");
         }
