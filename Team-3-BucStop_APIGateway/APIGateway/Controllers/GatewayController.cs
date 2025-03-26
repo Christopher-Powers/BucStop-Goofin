@@ -36,9 +36,9 @@ namespace Gateway
         {
             try
             {
-                var SnakeTask = AddGameInfo("https://localhost:1948", "/Snake" ); //Snake 
-                var PongTask = AddGameInfo("https://localhost:1941", "/Pong"); //Pong
-                var TetrisTask = AddGameInfo("https://localhost:2626", "/Tetris"); //Tetris
+                var SnakeTask = AddGameInfo("http://3.232.16.65", "/Snake" ); //Snake 
+                var PongTask = AddGameInfo("http://3.232.16.65", "/Pong"); //Pong
+                var TetrisTask = AddGameInfo("http://3.232.16.65", "/Tetris"); //Tetris
                 await Task.WhenAll(SnakeTask, PongTask, TetrisTask);
                 return TheInfo;
             }
