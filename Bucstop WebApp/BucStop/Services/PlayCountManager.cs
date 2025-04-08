@@ -3,69 +3,68 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace BucStop.Services
+namespace BucStop.Services;
+
+
+public class PlayCountManager
 {
+    private List<Game> games;
+    private string jsonFilePath;  // Field to store the JSON file path
 
-    public class PlayCountManager
+    public PlayCountManager(List<Game> games, IWebHostEnvironment webHostEnvironment)
     {
-        private List<Game> games;
-        private string jsonFilePath;  // Field to store the JSON file path
+        this.games = games;
+        jsonFilePath = Path.Combine(webHostEnvironment.WebRootPath, "playcount.json");
+        LoadPlayCounts();
+    }
 
-        public PlayCountManager(List<Game> games, IWebHostEnvironment webHostEnvironment)
+
+    public void IncrementPlayCount(int gameId)
+    {
+        var game = games.FirstOrDefault(g => g.Id == gameId);
+        if (game != null)
         {
-            this.games = games;
-            jsonFilePath = Path.Combine(webHostEnvironment.WebRootPath, "playcount.json");
-            LoadPlayCounts();
+            game.PlayCount++;
+            SavePlayCounts();
         }
+    }
 
+    public int GetPlayCount(int gameId)
+    {
+        var game = games.FirstOrDefault(g => g.Id == gameId);
+        return game?.PlayCount ?? 0;
+    }
 
-        public void IncrementPlayCount(int gameId)
+    private void LoadPlayCounts()
+    {
+        if (File.Exists(jsonFilePath))
         {
-            var game = games.FirstOrDefault(g => g.Id == gameId);
-            if (game != null)
+            var jsonText = File.ReadAllText(jsonFilePath);
+            var playCountData = JsonSerializer.Deserialize<List<Game>>(jsonText);
+
+            foreach (var playCount in playCountData)
             {
-                game.PlayCount++;
-                SavePlayCounts();
-            }
-        }
-
-        public int GetPlayCount(int gameId)
-        {
-            var game = games.FirstOrDefault(g => g.Id == gameId);
-            return game?.PlayCount ?? 0;
-        }
-
-        private void LoadPlayCounts()
-        {
-            if (File.Exists(jsonFilePath))
-            {
-                var jsonText = File.ReadAllText(jsonFilePath);
-                var playCountData = JsonSerializer.Deserialize<List<Game>>(jsonText);
-
-                foreach (var playCount in playCountData)
+                var existingGame = games.FirstOrDefault(g => g.Id == playCount.Id);
+                if (existingGame != null)
                 {
-                    var existingGame = games.FirstOrDefault(g => g.Id == playCount.Id);
-                    if (existingGame != null)
-                    {
-                        existingGame.PlayCount = playCount.PlayCount;
-                    }
+                    existingGame.PlayCount = playCount.PlayCount;
                 }
             }
-            else
-            {
-                foreach (var game in games)
-                {
-                    game.PlayCount = 0;
-                }
-
-                SavePlayCounts();
-            }
         }
-
-        private void SavePlayCounts()
+        else
         {
-            var jsonText = JsonSerializer.Serialize(games);
-            File.WriteAllText(jsonFilePath, jsonText);
+            foreach (var game in games)
+            {
+                game.PlayCount = 0;
+            }
+
+            SavePlayCounts();
         }
+    }
+
+    private void SavePlayCounts()
+    {
+        var jsonText = JsonSerializer.Serialize(games);
+        File.WriteAllText(jsonFilePath, jsonText);
     }
 }

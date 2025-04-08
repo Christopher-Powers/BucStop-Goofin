@@ -2,7 +2,7 @@
 using System.IO;
 using BucStop.Models;
 using System.Text.Json;
-
+namespace BucStop.Services;
 public class GameService
 {
     private string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "games.json");
