@@ -6,7 +6,7 @@ using System.Diagnostics;
  * This file has the controllers for everything outside of the games
  * and game-related pages.
  */
-
+using BucStop.Services;
 namespace BucStop.Controllers;
 
 public class HomeController : Controller
