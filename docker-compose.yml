@@ -1,4 +1,3 @@
-
 services:
   bucstop:
     build:
@@ -22,7 +21,7 @@ services:
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
-      - "8081:80" # Expose API Gateway on localhost:8081
+      - "8081:80"
     networks:
       - bucstop-network
     depends_on:
@@ -36,7 +35,7 @@ services:
       dockerfile: Dockerfile
     container_name: game-snake
     ports:
-      - "8082:80" # Expose Snake microservice on localhost:8082
+      - "8082:80"
     networks:
       - bucstop-network
 
@@ -46,7 +45,7 @@ services:
       dockerfile: Dockerfile
     container_name: game-pong
     ports:
-      - "8083:80" # Expose Pong microservice on localhost:8083
+      - "8083:80"
     networks:
       - bucstop-network
 
@@ -56,7 +55,7 @@ services:
       dockerfile: Dockerfile
     container_name: game-tetris
     ports:
-      - "8084:80" # Expose Tetris microservice on localhost:8084
+      - "8084:80"
     networks:
       - bucstop-network
 
