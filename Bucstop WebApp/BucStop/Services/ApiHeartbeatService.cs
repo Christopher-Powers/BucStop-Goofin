@@ -11,7 +11,15 @@ namespace BucStop.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<ApiHeartbeatService> _logger;
-        private readonly string _healthCheckUrl = "https://localhost:4141/health"; // API Gateway health endpoint
+
+        // Define each service name -> health‑check URL here
+        private readonly Dictionary<string, string> _servicesToCheck = new()
+        {
+            { "API Gateway", "https://localhost:4141/health" },
+            { "Snake",       "https://localhost:1948/health" },
+            { "Tetris",      "https://localhost:2626/health" }, 
+            { "Pong",        "https://localhost:1941/health" },
+        };
 
         public ApiHeartbeatService(HttpClient httpClient, ILogger<ApiHeartbeatService> logger)
         {
@@ -23,22 +31,24 @@ namespace BucStop.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                foreach (var (name, url) in _servicesToCheck)
                 {
-                    var response = await _httpClient.GetAsync(_healthCheckUrl, stoppingToken);
-
-                    if (response.IsSuccessStatusCode)
+                    try
                     {
-                        _logger.LogInformation("{Category}: API Gateway is healthy.", "APIHeartbeat");
+                        var response = await _httpClient.GetAsync(url, stoppingToken);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            _logger.LogInformation("Heartbeat: {Service} is healthy.", name);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Heartbeat: {Service} returned {StatusCode}.", name, response.StatusCode);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _logger.LogWarning("{Category}: API Gateway returned {StatusCode}.", "APIHeartbeat", response.StatusCode);
+                        _logger.LogError("Heartbeat: {Service} check failed – {Error}.", name, ex.Message);
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError("{Category}: API Gateway heartbeat failed - {ErrorMessage}", "APIHeartbeat", ex.Message);
                 }
 
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); // Runs every 5 minutes
