@@ -20,4 +20,11 @@ RUN dotnet publish "BucStop.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Create directories for volumes
+RUN mkdir -p /app/Logs && \
+    mkdir -p /app/wwwroot && \
+    chmod -R 755 /app/Logs && \
+    chmod -R 755 /app/wwwroot
+
 ENTRYPOINT ["dotnet", "BucStop.dll"]
