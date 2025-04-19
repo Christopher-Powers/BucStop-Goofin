@@ -35,6 +35,35 @@ namespace BucStop.Services
             return game?.PlayCount ?? 0;
         }
 
+        public void SetPlayCount(int gameId, int count)
+        {
+            var game = games.FirstOrDefault(g => g.Id == gameId);
+            if (game != null)
+            {
+                game.PlayCount = count;
+                SavePlayCounts();
+            }
+        }
+
+        public async Task RollbackToSnapshot(Dictionary<string, int> playerCounts)
+        {
+            // Map game names to IDs
+            var gameIdMap = new Dictionary<string, int>
+            {
+                { "Snake", 1 },
+                { "Tetris", 2 },
+                { "Pong", 3 }
+            };
+
+            foreach (var kvp in playerCounts)
+            {
+                if (gameIdMap.TryGetValue(kvp.Key, out int gameId))
+                {
+                    SetPlayCount(gameId, kvp.Value);
+                }
+            }
+        }
+
         private void LoadPlayCounts()
         {
             if (File.Exists(jsonFilePath))

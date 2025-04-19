@@ -1,4 +1,3 @@
-
 services:
   bucstop:
     build:
@@ -13,6 +12,9 @@ services:
       - DOTNET_ENVIRONMENT=${env:-containersLocal}
     depends_on:
       - api-gateway
+    volumes:
+      - snapshots-data:/app/Snapshots
+      - logs-data:/app/Logs
 
   api-gateway:
     build:
@@ -69,3 +71,9 @@ services:
 networks:
   bucstop-network:
     driver: bridge
+
+volumes:
+  snapshots-data:
+    driver: local
+  logs-data:
+    driver: local

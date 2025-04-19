@@ -1,0 +1,155 @@
+@model List<BucStop.Models.Snapshot>
+
+@{
+    ViewData["Title"] = "Snapshots";
+}
+
+<style>
+    .snapshots-container {
+        color: #ffffff;
+    }
+
+    .snapshots-container h1 {
+        color: #ffd700; /* Golden yellow for the title */
+        margin-bottom: 0.5rem;
+    }
+
+    .snapshots-container p {
+        color: #cccccc;
+        margin-bottom: 2rem;
+    }
+
+    .table {
+        color: #ffffff;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .table thead th {
+        background-color: rgba(0, 0, 0, 0.6);
+        color: #ffd700;
+        border-color: #444;
+    }
+
+    .table tbody tr {
+        border-color: #444;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .table td {
+        border-color: #444;
+    }
+
+    .btn-create {
+        background-color: #ffd700;
+        color: #000;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 500;
+    }
+
+    .btn-create:hover {
+        background-color: #ffed4a;
+        color: #000;
+    }
+
+    .btn-details {
+        background-color: #4a90e2;
+        color: #fff;
+        border: none;
+    }
+
+    .btn-details:hover {
+        background-color: #357abd;
+        color: #fff;
+    }
+
+    .btn-rollback {
+        background-color: #e67e22;
+        color: #fff;
+        border: none;
+        margin-left: 0.5rem;
+    }
+
+    .btn-rollback:hover {
+        background-color: #d35400;
+        color: #fff;
+    }
+
+    .alert {
+        border: none;
+        margin-bottom: 1rem;
+    }
+
+    .alert-success {
+        background-color: rgba(39, 174, 96, 0.2);
+        color: #2ecc71;
+    }
+
+    .alert-danger {
+        background-color: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+    }
+</style>
+
+<div class="container mt-4 snapshots-container">
+    <h1>System Snapshots</h1>
+    <p>View and manage system state snapshots</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="mb-4">
+        <a asp-action="Create" class="btn btn-create">Create New Snapshot</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Description</th>
+                    <th>Snake Players</th>
+                    <th>Tetris Players</th>
+                    <th>Pong Players</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var snapshot in Model)
+                {
+                    <tr>
+                        <td>@snapshot.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td>@snapshot.Description</td>
+                        <td>@snapshot.PlayerCounts["Snake"]</td>
+                        <td>@snapshot.PlayerCounts["Tetris"]</td>
+                        <td>@snapshot.PlayerCounts["Pong"]</td>
+                        <td>
+                            <div class="btn-group">
+                                <a asp-action="Details" asp-route-id="@snapshot.Id" class="btn btn-details btn-sm">Details</a>
+                                <form asp-action="Rollback" asp-route-id="@snapshot.Id" method="post" style="display: inline;">
+                                    <button type="submit" class="btn btn-rollback btn-sm" onclick="return confirm('Are you sure you want to rollback to this snapshot? This will update all player counts.');">
+                                        Rollback
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div> 

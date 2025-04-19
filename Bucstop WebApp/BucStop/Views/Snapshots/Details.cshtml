@@ -1,0 +1,127 @@
+@model BucStop.Models.Snapshot
+
+@{
+    ViewData["Title"] = "Snapshot Details";
+}
+
+<style>
+    .snapshots-container {
+        color: #ffffff;
+    }
+
+    .snapshots-container h1 {
+        color: #ffd700;
+        margin-bottom: 0.5rem;
+    }
+
+    .snapshots-container p {
+        color: #cccccc;
+        margin-bottom: 2rem;
+    }
+
+    .card {
+        background-color: rgba(0, 0, 0, 0.4);
+        border-color: #444;
+        margin-bottom: 2rem;
+    }
+
+    .card-header {
+        background-color: rgba(0, 0, 0, 0.6);
+        border-bottom-color: #444;
+    }
+
+    .card-header h5 {
+        color: #ffd700;
+        margin: 0;
+    }
+
+    .card-body {
+        color: #ffffff;
+    }
+
+    .card-body dt {
+        color: #cccccc;
+    }
+
+    .card-body dd {
+        color: #ffffff;
+    }
+
+    pre {
+        background-color: rgba(0, 0, 0, 0.2);
+        border: 1px solid #444;
+        color: #ffffff;
+    }
+
+    .btn-back {
+        background-color: #4a90e2;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+    }
+
+    .btn-back:hover {
+        background-color: #357abd;
+        color: #fff;
+    }
+</style>
+
+<div class="container mt-4 snapshots-container">
+    <h1>Snapshot Details</h1>
+    <p>Detailed view of the system snapshot</p>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Basic Information</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">ID</dt>
+                <dd class="col-sm-9">@Model.Id</dd>
+
+                <dt class="col-sm-3">Timestamp</dt>
+                <dd class="col-sm-9">@Model.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Player Counts</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Snake</dt>
+                <dd class="col-sm-9">@Model.PlayerCounts["Snake"]</dd>
+
+                <dt class="col-sm-3">Tetris</dt>
+                <dd class="col-sm-9">@Model.PlayerCounts["Tetris"]</dd>
+
+                <dt class="col-sm-3">Pong</dt>
+                <dd class="col-sm-9">@Model.PlayerCounts["Pong"]</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>System Logs</h5>
+        </div>
+        <div class="card-body">
+            @foreach (var log in Model.Logs)
+            {
+                <div class="mb-3">
+                    <h6 class="text-warning">@log.Key</h6>
+                    <pre class="p-2 rounded"><code>@log.Value</code></pre>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="Index" class="btn btn-back">Back to List</a>
+    </div>
+</div> 

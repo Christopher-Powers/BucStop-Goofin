@@ -1,0 +1,84 @@
+@{
+    ViewData["Title"] = "Create Snapshot";
+}
+
+<style>
+    .snapshots-container {
+        color: #ffffff;
+    }
+
+    .snapshots-container h1 {
+        color: #ffd700;
+        margin-bottom: 0.5rem;
+    }
+
+    .snapshots-container p {
+        color: #cccccc;
+        margin-bottom: 2rem;
+    }
+
+    .form-group label {
+        color: #ffd700;
+    }
+
+    .form-control {
+        background-color: rgba(0, 0, 0, 0.4);
+        border-color: #444;
+        color: #ffffff;
+    }
+
+    .form-control:focus {
+        background-color: rgba(0, 0, 0, 0.6);
+        border-color: #ffd700;
+        color: #ffffff;
+        box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
+    }
+
+    .form-text {
+        color: #cccccc !important;
+    }
+
+    .btn-create {
+        background-color: #ffd700;
+        color: #000;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 500;
+    }
+
+    .btn-create:hover {
+        background-color: #ffed4a;
+        color: #000;
+    }
+
+    .btn-back {
+        background-color: #4a90e2;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+    }
+
+    .btn-back:hover {
+        background-color: #357abd;
+        color: #fff;
+    }
+</style>
+
+<div class="container mt-4 snapshots-container">
+    <h1>Create New Snapshot</h1>
+    <p>Create a new snapshot of the current system state</p>
+
+    <form asp-action="Create" method="post">
+        <div class="form-group">
+            <label for="description">Description</label>
+            <input type="text" class="form-control" id="description" name="description" required
+                   placeholder="Enter a description for this snapshot">
+            <small class="form-text">Provide a meaningful description to help identify this snapshot later.</small>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-create">Create Snapshot</button>
+            <a asp-action="Index" class="btn btn-back">Back to List</a>
+        </div>
+    </form>
+</div> 
