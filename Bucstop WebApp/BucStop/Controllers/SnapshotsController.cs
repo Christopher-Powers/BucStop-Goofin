@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Net.Http;
 
 
 namespace BucStop.Controllers
@@ -15,7 +16,7 @@ namespace BucStop.Controllers
     {
         private readonly SnapshotService _snapshotService;
         private readonly PlayCountManager _playCountManager;
-        private readonly GameService _gameService;
+        private readonly MicroClient _httpClient;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ILogger<SnapshotsController> _logger;
         private readonly IHostEnvironment _host;
@@ -23,15 +24,15 @@ namespace BucStop.Controllers
         public SnapshotsController(
             SnapshotService snapshotService,
             IWebHostEnvironment webHostEnvironment,
-            GameService gameService,
+            MicroClient microClient,
             ILogger<SnapshotsController> logger,
             IHostEnvironment host)
         {
             _snapshotService = snapshotService;
-            _gameService = gameService;
+            _httpClient = microClient;
             _webHostEnvironment = webHostEnvironment;
             _logger = logger;
-            _playCountManager = new PlayCountManager(_gameService.GetGames() ?? new List<Game>(), webHostEnvironment);
+            _playCountManager = new PlayCountManager(_httpClient.GetGamesList() ?? new List<Game>(), webHostEnvironment);
             _host = host;
         }
 
@@ -87,7 +88,7 @@ namespace BucStop.Controllers
 
             
             // Get games and their play counts
-            var games = _gameService.GetGames();
+            var games = _httpClient.GetGamesList();
             if (games != null)
             {
                 snapshot.PlayerCounts["Snake"] = _playCountManager.GetPlayCount(1);  // Snake has ID 1

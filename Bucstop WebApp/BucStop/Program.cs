@@ -59,7 +59,6 @@ var logsPath = Path.Combine(builder.Environment.ContentRootPath, "Logs");
 Directory.CreateDirectory(snapshotsPath);
 Directory.CreateDirectory(logsPath);
 
-builder.Services.AddSingleton<GameService>();
 builder.Services.AddHostedService<ApiHeartbeatService>();
 builder.Services.AddScoped<SnapshotService>();
 

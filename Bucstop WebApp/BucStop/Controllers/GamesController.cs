@@ -16,22 +16,15 @@ namespace BucStop.Controllers
     {
         private readonly MicroClient _httpClient;
         private readonly PlayCountManager _playCountManager;
-        private readonly GameService _gameService;
         private readonly ILogger<GamesController> _logger;
-        private Task<List<Game>> gamesAsync; 
 
-
-        public GamesController(MicroClient games, IWebHostEnvironment webHostEnvironment, GameService gameService, ILogger<GamesController> logger)
+        public GamesController(MicroClient microClient, IWebHostEnvironment webHostEnvironment, ILogger<GamesController> logger)
         {
-            _httpClient = games;
-            _gameService = gameService;
+            _httpClient = microClient;
             _logger = logger;
 
             // Initialize the PlayCountManager with the web root path and the JSON file name
-            _playCountManager = new PlayCountManager(_gameService.GetGames() ?? new List<Game>(), webHostEnvironment);
-
-            //start the async pull of the games info
-            gamesAsync = GetGamesWithInfo();
+            _playCountManager = new PlayCountManager(_httpClient.GetGamesList() ?? new List<Game>(), webHostEnvironment);
         }
 
         //Takes the user to the index page, passing the games list as an argument
@@ -44,10 +37,10 @@ namespace BucStop.Controllers
             stopwatch.Start();
 
             //await the async gamesinfo
-            List<Game> games = await gamesAsync;
+            List<Game> games = _httpClient.GetGamesList();
 
             //have to update playcounts here since the we are reading it dynamically now instead of from a static list
-            foreach(Game game in games)
+            foreach (Game game in games)
             {
                 game.PlayCount = _playCountManager.GetPlayCount(game.Id);
             }
@@ -73,7 +66,7 @@ namespace BucStop.Controllers
             stopwatch.Start();
 
             //await the async gamesinfo
-            List<Game> games = await gamesAsync;
+            List<Game> games = _httpClient.GetGamesList();
 
             Game game = games.FirstOrDefault(x => x.Id == id);
             if (game == null)
@@ -102,6 +95,7 @@ namespace BucStop.Controllers
 
             return View(game);
         }
+
 
         public async Task<List<Game>> GetGamesWithInfo()
         {
@@ -151,6 +145,5 @@ namespace BucStop.Controllers
 
 
             return games;
-        }
     }
 }

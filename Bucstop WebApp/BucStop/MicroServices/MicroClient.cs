@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using BucStop.Models;
+using BucStop.Controllers;
 
 
 namespace BucStop
@@ -18,11 +20,16 @@ namespace BucStop
 
         private readonly HttpClient client;
         private readonly ILogger<MicroClient> _logger;
+        private List<Game> gamesList;
+        private Task<List<Game>> gamesTask;
 
         public MicroClient(HttpClient client, ILogger<MicroClient> logger)
         {
             this.client = client;
             this._logger = logger;
+
+            //Start Asynchronous pull of Games
+            gamesTask = GetGamesWithInfo();
         }
 
         /// <summary>
@@ -46,6 +53,62 @@ namespace BucStop
                 _logger.LogError("{Category}: API request failed: {ErrorMessage}", "APIRequests", ex.Message);
             }
             return new GameInfo[] { };
+        }
+
+        // Converts the GameInfo objects gathered from GetGamesAsync() into Game objects to pass to controllers.
+        public async Task<List<Game>> GetGamesWithInfo()
+        {
+            List<Game> games = new List<Game>();
+
+            try
+            {
+                GameInfo[] gameInfos = await GetGamesAsync();
+
+                if (gameInfos.Length > 0)
+                {
+                    _logger.LogInformation("Successfully retrieved {Count} games from API.", gameInfos.Length);
+                }
+                else
+                {
+                    _logger.LogWarning("API returned 0 games.");
+                }
+
+                foreach (GameInfo info in gameInfos)
+                {
+                    Game game = new Game();
+
+                    if (info != null)
+                    {
+                        game.Id = info.Id;
+                        game.Title = info.Title;
+                        game.Content = info.Content;
+                        game.Thumbnail = info.Thumbnail;
+                        game.Author = info.Author;
+                        game.HowTo = info.HowTo;
+                        game.DateAdded = info.DateAdded;
+                        game.Description = $"{info.Description} \n {info.DateAdded}";
+                        game.LeaderBoard = info.LeaderBoard;
+
+                        _logger.LogInformation("Game ID {Id} Content URL: {Content}", info.Id, info.Content);
+
+                    }
+
+                    games.Add(game);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving game information from API.");
+            }
+
+            return games;
+        }
+
+        // Return the private gamesList object.
+        public List<Game> GetGamesList()
+        {
+            gamesList = gamesTask.Result;
+            return this.gamesList;
         }
 
         /*
