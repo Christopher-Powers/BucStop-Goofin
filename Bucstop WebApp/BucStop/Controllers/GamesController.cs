@@ -145,5 +145,6 @@ namespace BucStop.Controllers
 
 
             return games;
+        }
     }
 }
