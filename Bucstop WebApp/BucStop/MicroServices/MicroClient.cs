@@ -35,7 +35,7 @@ namespace BucStop
         /// <summary>
         /// Requests the Gateway for a List of Game Information 
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A list GameInfo</returns>
         public async Task<GameInfo[]> GetGamesAsync()
         {
             try

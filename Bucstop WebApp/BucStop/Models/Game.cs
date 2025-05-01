@@ -47,10 +47,5 @@ namespace BucStop.Models
 
         public Stack<KeyValuePair<string, int>> LeaderBoard { get; set; }
         public int PlayCount { get; set; }
-
-        /*public async Task OnGet([FromServices] MicroClient microClient)
-        {
-            Info = await microClient.GetGamesAsync  ();
-        } */
     }
 }
